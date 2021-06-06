@@ -114,6 +114,7 @@ typings/
 .parcel-cache
 
 # Storybook build outputs
+dist
 .out
 .storybook-out
 storybook-static
