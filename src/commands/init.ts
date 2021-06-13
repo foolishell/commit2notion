@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { Command } from "commander";
 import prompts from "prompts";
 
@@ -6,26 +7,33 @@ import { createInits, loadCredentials, saveCredentails } from "../file-systems";
 export const makeInitCommand = () => {
   const program = new Command("init");
 
-  program.description("create necessary dirctorys for CLI & configure credentials").action(async () => {
+  program.description("initialize configurations").action(async () => {
     // create needed dirctorys and files
     await createInits();
-    // input credentials
+    // load credentials
     const credentials = await loadCredentials();
-    if (!credentials["SLACK_TOKEN"]) {
-      const slack_token = await askSlackToken();
-      credentials["SLACK_TOKEN"] = slack_token;
+
+    const notion_token = await askNotionToken();
+
+    if (!notion_token) {
+      console.warn("no input found");
+    } else {
+      credentials["NOTION_TOKEN"] = notion_token;
       await saveCredentails(credentials);
     }
+    console.log(
+      chalk.green.bold("use ") + chalk.blueBright.bold("c2n db --new") + chalk.green.bold(" to add databases"),
+    );
   });
 
   return program;
 };
 
-const askSlackToken = async () => {
+const askNotionToken = async () => {
   const res = await prompts({
     type: "invisible",
     name: "value",
-    message: "regist slack token",
+    message: "input slack token",
   });
   return res.value;
 };
