@@ -4,6 +4,7 @@ x-dev-base: &dev-base
   volumes: 
     - .:/home/node/app
     - node-modules:/home/node/app/node_modules
+    - dist:/home/node/app/dist
   working_dir: /home/node/app
   init: true
   environment:
@@ -12,6 +13,7 @@ x-dev-base: &dev-base
   
 volumes: 
   node-modules:
+  dist:
 
 services: 
   builder:
@@ -20,8 +22,6 @@ services:
       context: .
       dockerfile: ./Dockerfile
       target: builder
-    command: yarn install
-    
 
   shell:
     << : *dev-base
@@ -30,5 +30,3 @@ services:
       dockerfile: ./Dockerfile
       target: shell
     tty: true
-    profiles:
-      - shell

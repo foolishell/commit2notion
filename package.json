@@ -5,13 +5,16 @@
   "author": "Kai Fukushima <Yumemi>",
   "main": "src/index.js",
   "license": "MIT",
+  "bin": {
+    "commit2notion": "dist/index.js"
+  },
   "scripts": {
     "dev": "ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "clean": "rm -rf dist/* && rm -rf pkg/*",
     "lint": "eslint . -c .eslintrc.json --fix",
-    "pkg": "mkdir -p pkg/commit2notion/bin && pkg . --out-path pkg/commit2notion/bin  --compress Gzip"
+    "pkg": "mkdir -p pkg/commit2notion/bin && pkg . --out-path pkg/commit2notion/bin --compress Gzip"
   },
   "dependencies": {
     "@notionhq/client": "^0.1.8",

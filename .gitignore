@@ -144,6 +144,7 @@ storybook-static
 .vscode-test
 
 # Temporary folders
+pkg/
 tmp/
 temp/
 
