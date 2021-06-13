@@ -5,8 +5,9 @@ import { Command } from "commander";
 import prompts, { Choice } from "prompts";
 import validator from "validator";
 
-import { saveCommitAsJson } from "../file-systems";
+import { loadDatabases, saveCommitAsJson } from "../file-systems";
 import { getDatabaseSchema } from "../notion";
+import { skipLine } from "../utils";
 
 export const makeCommitCommand = () => {
   const program = new Command("commit");
@@ -15,17 +16,27 @@ export const makeCommitCommand = () => {
     .alias("cm")
     .description("create new item on local")
     .action(async () => {
-      // get schema of target database
-      const schema = await getDatabaseSchema();
+      skipLine();
 
+      // select database
+      const databases = await loadDatabases();
+      if (Object.keys(databases).length === 0) {
+        console.warn(chalk.yellow.bold("no database exists, try 'c2n db --new'"));
+        throw new Error();
+      }
+      const databaseId = await askDatabase(databases);
+
+      // get schema of target database
+      const schema = await getDatabaseSchema(databaseId);
       const requestBody: PagesCreateParameters = {
         parent: {
-          database_id: schema.id,
+          database_id: databaseId,
         },
         properties: {},
       };
+
+      // ask each property value by prompt
       for (const propertyName in schema.properties) {
-        // ask each property value by prompt
         const value = await askPropertyValue(propertyName, schema.properties[propertyName]);
         if (value) {
           // make property value object for post request
@@ -33,12 +44,37 @@ export const makeCommitCommand = () => {
           requestBody.properties[propertyName] = inputPropertyValue;
         }
       }
+
       // save request body as json file
       await saveCommitAsJson(requestBody);
 
-      console.log(chalk.green.bold("\ncommit succeeded! 🐚"));
+      console.log(chalk.green.bold("commit succeeded! 🐚"));
+      skipLine();
     });
   return program;
+};
+
+const askDatabase = async (databases) => {
+  const keys = Object.keys(databases);
+  const choices = await createChoicesByString(keys);
+  const res = await prompts({
+    type: "select",
+    name: "value",
+    message: chalk.green(`Database (select): `),
+    choices: choices,
+  });
+  return databases[res.value];
+};
+
+const createChoicesByString = async (arr: string[]) => {
+  const choices = [] as Choice[];
+  for (const str of arr) {
+    choices.push({
+      title: str,
+      value: str,
+    });
+  }
+  return choices;
 };
 
 const askPropertyValue = async (propertyName: string, propertySchema: Property): Promise<string | null> => {
@@ -102,7 +138,7 @@ const askPropertyValue = async (propertyName: string, propertySchema: Property):
       });
       break;
     case "select": // select
-      choices = createChoices(propertySchema.select.options);
+      choices = createChoicesByOpts(propertySchema.select.options);
       res = await prompts({
         type: "select",
         name: "value",
@@ -111,7 +147,7 @@ const askPropertyValue = async (propertyName: string, propertySchema: Property):
       });
       break;
     case "multi_select":
-      choices = createChoices(propertySchema.multi_select.options);
+      choices = createChoicesByOpts(propertySchema.multi_select.options);
       res = await prompts({
         type: "multiselect",
         name: "value",
@@ -140,7 +176,7 @@ const askPropertyValue = async (propertyName: string, propertySchema: Property):
   return res.value;
 };
 
-const createChoices = (opts: Array<SelectOption | MultiSelectOption>) => {
+const createChoicesByOpts = (opts: Array<SelectOption | MultiSelectOption>) => {
   const choices = [] as Choice[];
   for (const opt of opts) {
     choices.push({
